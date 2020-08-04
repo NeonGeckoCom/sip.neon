@@ -182,7 +182,10 @@ class SIPSkill(CommonMessageSkill):
         except Exception as e:
             LOG.error(e)
         if not os.path.isdir(self.ngi_settings.content["record_dir"]):
-            os.makedirs(self.ngi_settings.content["record_dir"], exist_ok=True)
+            try:
+                os.makedirs(self.ngi_settings.content["record_dir"], exist_ok=True)
+            except Exception as e:
+                LOG.error(e)
         if self.ngi_settings.content["user"] and not self.server:
             self.start_sip()
         # if self.settings["sipxcom_sync"]:
