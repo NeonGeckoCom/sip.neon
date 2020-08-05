@@ -77,6 +77,23 @@
         ]
       },
       {
+        "name": "Local Variables",
+        "fields": [
+          {
+            "name": "record_dir",
+            "type": "text",
+            "label": "Recording Audio Directory",
+            "value": ""
+          },
+          {
+            "name": "debug",
+            "type": "checkbox",
+            "label": "Enable BareSIP debug logging",
+            "value": "false"
+          }
+        ]
+      },
+      {
         "name": "SipXCom",
         "fields": [
           {

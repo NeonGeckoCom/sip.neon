@@ -161,6 +161,7 @@ class SIPSkill(CommonMessageSkill):
         self.sip = None
         self.say_vocab = None
         self.cb = None
+        self.record_dir = None
         self.contacts = ContactList("mycroft_sip")
         self.message_words = ("sip", "voip", "baresip", "sip2sip", "sipxcom")
 
@@ -181,9 +182,14 @@ class SIPSkill(CommonMessageSkill):
                 self.say_vocab = list(chain(*read_vocab_file(say_voc)))
         except Exception as e:
             LOG.error(e)
-        if not os.path.isdir(self.ngi_settings.content["record_dir"]):
+
+        self.record_dir = self.settings.get("record_dir",
+                                            self.configuration_available['dirVars']['docsDir'] + '/neon_calls')
+        if self.record_dir == "":
+            self.record_dir = self.configuration_available['dirVars']['docsDir'] + '/neon_calls'
+        if not os.path.isdir(self.record_dir):
             try:
-                os.makedirs(self.ngi_settings.content["record_dir"], exist_ok=True)
+                os.makedirs(self.record_dir, exist_ok=True)
             except Exception as e:
                 LOG.error(e)
         if self.ngi_settings.content["user"] and not self.server:
@@ -388,7 +394,7 @@ class SIPSkill(CommonMessageSkill):
         LOG.info(f"Saving audio for call with {caller}")
         filename = f'{self.ngi_settings.content["user"]} {str(datetime.now(self.sys_tz)).split(".", 1)[0]} {caller}'
         LOG.info(f"Save audio as: {filename}")
-        self.file_path = f"{self.ngi_settings.content['record_dir']}/{filename}"
+        self.file_path = f"{self.record_dir}/{filename}"
         os.makedirs(self.file_path, exist_ok=True)
         self.record_process = record(f"{self.file_path}/local.wav",
                                      -1,
@@ -444,7 +450,7 @@ class SIPSkill(CommonMessageSkill):
         :param caller: sip address of the incoming caller
         :return: path to audio file to use
         """
-        files = glob.glob(self.ngi_settings.content['record_dir'] + "/*.wav")
+        files = glob.glob(self.record_dir + "/*.wav")
         files.sort(key=os.path.getmtime, reverse=True)
         LOG.debug(files)
         for file in files:
