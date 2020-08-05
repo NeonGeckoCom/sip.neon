@@ -632,6 +632,7 @@ class SIPSkill(CommonMessageSkill):
             self.speak_dialog("sip_login_fail")
         else:
             self.speak_dialog("credentials_missing")
+        self.handle_gui_state("Configure")
 
     def handle_incoming_call(self, number):
         self.sip.enable_recording()
