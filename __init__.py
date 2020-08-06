@@ -985,7 +985,7 @@ class SIPSkill(CommonMessageSkill):
             time.sleep(60)
 
     def converse(self, utterances, lang="en-us", message=None):
-        if self.ngi_settings.content["intercept_allowed"] and utterances is not None:
+        if self.settings.get("intercept_allowed") and utterances is not None:
             LOG.debug("{name}: Intercept stage".format(
                 name=self.skill_name))
             if self.voc_match(utterances[0], "end_call") and self.neon_in_request(message):

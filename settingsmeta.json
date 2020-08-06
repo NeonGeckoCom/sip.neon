@@ -90,6 +90,12 @@
             "type": "checkbox",
             "label": "Enable BareSIP debug logging",
             "value": "false"
+          },
+          {
+            "name": "intercept_allowed",
+            "type": "checkbox",
+            "label": "Flag to intercept utterances in skill",
+            "value": "false"
           }
         ]
       },
