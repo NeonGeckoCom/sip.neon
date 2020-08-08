@@ -14,13 +14,13 @@
             "name": "user",
             "type": "text",
             "label": "user",
-            "value": "user"
+            "value": ""
           },
           {
             "name": "password",
             "type": "password",
             "label": "password",
-            "value": "SECRET"
+            "value": ""
           }
         ]
       },
@@ -31,13 +31,13 @@
             "name": "contact_name",
             "type": "text",
             "label": "contact name, pick something mycroft can understand!",
-            "value": "name here"
+            "value": ""
           },
           {
             "name": "contact_address",
             "type": "text",
             "label": "contact address",
-            "value": "user@sipxcom.com"
+            "value": ""
           },
           {
             "name": "add_contact",
@@ -89,6 +89,12 @@
             "name": "debug",
             "type": "checkbox",
             "label": "Enable BareSIP debug logging",
+            "value": "false"
+          },
+          {
+            "name": "intercept_allowed",
+            "type": "checkbox",
+            "label": "Flag to intercept utterances in skill",
             "value": "false"
           }
         ]
