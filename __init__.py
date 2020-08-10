@@ -68,29 +68,29 @@ class SIPSkill(CommonMessageSkill):
     # TODO: Add server/mobile compat. DM
     def __init__(self):
         super(SIPSkill, self).__init__(name='SIPSkill')
-        self.settings = dict()
-        default_settings = {
-            "intercept_allowed": True,
-            "confirm_operations": True,
-            "debug": False,
-            "priority": 50,
-            "timeout": 30,
-            "auto_answer": False,
-            "auto_reject": False,
-            "auto_speech": "I am busy, try again later",
-            "add_contact": False,
-            "delete_contact": False,
-            "contact_name": None,
-            "contact_address": None,
-            "user": "",
-            "password": "",
-            "gateway": "sip2sip.info",
-            "sipxcom_user": None,
-            "sipxcom_password": None,
-            "sipxcom_gateway": None,
-            'record_dir': self.configuration_available['dirVars']['docsDir'] + '/neon_calls'
-        }
-        self.init_settings(default_settings)
+        # self.settings = dict()
+        # default_settings = {
+        #     "intercept_allowed": True,
+        #     "confirm_operations": True,
+        #     "debug": False,
+        #     "priority": 50,
+        #     "timeout": 30,
+        #     "auto_answer": False,
+        #     "auto_reject": False,
+        #     "auto_speech": "I am busy, try again later",
+        #     "add_contact": False,
+        #     "delete_contact": False,
+        #     "contact_name": None,
+        #     "contact_address": None,
+        #     "user": "",
+        #     "password": "",
+        #     "gateway": "sip2sip.info",
+        #     "sipxcom_user": None,
+        #     "sipxcom_password": None,
+        #     "sipxcom_gateway": None,
+        #     'record_dir': self.configuration_available['dirVars']['docsDir'] + '/neon_calls'
+        # }
+        # self.init_settings(default_settings)
         # # skill settings defaults
         # # if "intercept_allowed" not in self.settings:
         # self.settings["intercept_allowed"] = True
