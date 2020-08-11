@@ -273,6 +273,15 @@ class SIPSkill(CommonMessageSkill):
                 break
         if not addr:
             if not self.server:
+                if not self.sip:
+                    try:
+                        if self.settings.get("user"):
+                            self.start_sip()
+                        else:
+                            return False
+                    except Exception as e:
+                        LOG.error(e)
+                        return False
                 try:
                     # Try to handle baresip config contacts
                     sip_contacts = self.sip.get_contacts()[0]
