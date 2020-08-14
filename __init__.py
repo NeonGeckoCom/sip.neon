@@ -192,7 +192,7 @@ class SIPSkill(CommonMessageSkill):
                 os.makedirs(self.record_dir, exist_ok=True)
             except Exception as e:
                 LOG.error(e)
-        if self.ngi_settings.content["user"] and not self.server:
+        if self.settings["user"] and not self.server:
             self.start_sip()
         # if self.settings["sipxcom_sync"]:
         #     self.sipxcom_sync()
@@ -338,11 +338,11 @@ class SIPSkill(CommonMessageSkill):
             self.sip.quit()
             sleep(0.5)
         try:
-            LOG.info(self.ngi_settings)
-            self.sip = BareSIP(self.ngi_settings.content["user"],
-                               self.ngi_settings.content["password"],
-                               self.ngi_settings.content["gateway"], block=False,
-                               debug=self.ngi_settings.content["debug"])
+            LOG.info(self.settings)
+            self.sip = BareSIP(self.settings["user"],
+                               self.settings["password"],
+                               self.settings["gateway"], block=False,
+                               debug=self.settings["debug"])
             LOG.info(self.sip)
             self.sip.handle_incoming_call = self.handle_incoming_call
             self.sip.handle_call_ended = self.handle_call_ended
@@ -401,7 +401,7 @@ class SIPSkill(CommonMessageSkill):
         :param caller: sip address of other user on call
         """
         LOG.info(f"Saving audio for call with {caller}")
-        filename = f'{self.ngi_settings.content["user"]} {str(datetime.now(self.sys_tz)).split(".", 1)[0]} {caller}'
+        filename = f'{self.settings["user"]} {str(datetime.now(self.sys_tz)).split(".", 1)[0]} {caller}'
         LOG.info(f"Save audio as: {filename}")
         self.file_path = f"{self.record_dir}/{filename}"
         os.makedirs(self.file_path, exist_ok=True)
@@ -635,9 +635,9 @@ class SIPSkill(CommonMessageSkill):
         self.sip.quit()
         self.sip = None
         self.intercepting_utterances = False  # just in case
-        if self.ngi_settings.content["user"] is not None and \
-                self.ngi_settings.content["gateway"] is not None and \
-                self.ngi_settings.content["password"] is not None:
+        if self.settings["user"] is not None and \
+                self.settings["gateway"] is not None and \
+                self.settings["password"] is not None:
             self.speak_dialog("sip_login_fail")
         else:
             self.speak_dialog("credentials_missing")
@@ -648,14 +648,14 @@ class SIPSkill(CommonMessageSkill):
 
         if number.startswith("sip:"):
             number = number[4:]
-        if self.ngi_settings.content["auto_answer"]:
+        if self.settings["auto_answer"]:
             self.accept_call()
             self._wait_until_call_established()
-            self.sip.speak(self.ngi_settings.content["auto_speech"])
+            self.sip.speak(self.settings["auto_speech"])
             self.hang_call()
             LOG.info("Auto answered call")
             return
-        if self.ngi_settings.content["auto_reject"]:
+        if self.settings["auto_reject"]:
             LOG.info("Auto rejected call")
             self.hang_call()
             return
@@ -736,9 +736,9 @@ class SIPSkill(CommonMessageSkill):
     @intent_file_handler("login.intent")
     def handle_login(self, message):
         if self.sip is None:
-            if not self.ngi_settings.content["user"] or not self.ngi_settings.content["password"]:
+            if not self.settings["user"] or not self.settings["password"]:
                 if self.gui_enabled:
-                    self.gui["gateWayField"] = self.ngi_settings.content["gateway"]
+                    self.gui["gateWayField"] = self.settings["gateway"]
                     self.handle_gui_state("Configure")
                     self.speak("Please fill in your credentials.")
                 else:
@@ -755,11 +755,11 @@ class SIPSkill(CommonMessageSkill):
                         LOG.info(password)
                         self.ngi_settings.update_yaml_file("user", value=username, multiple=True)
                         self.ngi_settings.update_yaml_file("password", value=password, final=True)
-                        self.ngi_settings.content["user"] = username
-                        self.ngi_settings.content["password"] = password
-                    if username and password and self.ngi_settings.content["gateway"]:
+                        self.settings["user"] = username
+                        self.settings["password"] = password
+                    if username and password and self.settings["gateway"]:
                         self.speak_dialog("sip_login",
-                                          {"gateway": self.ngi_settings.content["gateway"]})
+                                          {"gateway": self.settings["gateway"]})
                         self.start_sip()
                     else:
                         self.speak_dialog("credentials_missing")
@@ -922,20 +922,20 @@ class SIPSkill(CommonMessageSkill):
 
     @intent_file_handler("reject_all.intent")
     def handle_auto_reject(self, message):
-        self.ngi_settings.content["auto_reject"] = True
-        self.ngi_settings.content["auto_answer"] = False
+        self.settings["auto_reject"] = True
+        self.settings["auto_answer"] = False
         self.speak_dialog("rejecting_all")
 
     @intent_file_handler("answer_all.intent")
     def handle_auto_answer(self, message):
-        self.ngi_settings.content["auto_answer"] = True
-        self.ngi_settings.content["auto_reject"] = False
+        self.settings["auto_answer"] = True
+        self.settings["auto_reject"] = False
         self.speak_dialog("accept_all",
-                          {"speech": self.ngi_settings.content["auto_speech"]})
+                          {"speech": self.settings["auto_speech"]})
 
     @intent_file_handler("answer_all_and_say.intent")
     def handle_auto_answer_with(self, message):
-        self.ngi_settings.content["auto_speech"] = message.data["speech"]
+        self.settings["auto_speech"] = message.data["speech"]
         self.handle_auto_answer(message)
 
     @intent_file_handler("contacts_list.intent")
@@ -954,8 +954,8 @@ class SIPSkill(CommonMessageSkill):
 
     @intent_file_handler("disable_auto.intent")
     def handle_no_auto_answering(self, message):
-        self.ngi_settings.content["auto_answer"] = False
-        self.ngi_settings.content["auto_reject"] = False
+        self.settings["auto_answer"] = False
+        self.settings["auto_reject"] = False
         self.speak_dialog("no_auto")
 
     @intent_file_handler("call_status.intent")
@@ -972,9 +972,9 @@ class SIPSkill(CommonMessageSkill):
 
     def sipxcom_sync(self):
         try:
-            sipxcom = SipXCom(self.ngi_settings.content["sipxcom_user"],
-                              self.ngi_settings.content["sipxcom_password"],
-                              self.ngi_settings.content["sipxcom_gateway"])
+            sipxcom = SipXCom(self.settings["sipxcom_user"],
+                              self.settings["sipxcom_password"],
+                              self.settings["sipxcom_gateway"])
             if sipxcom.check_auth():
                 contacts = sipxcom.get_contacts(True)
                 for c in contacts:
@@ -1055,17 +1055,17 @@ class SIPSkill(CommonMessageSkill):
                 self.ngi_settings.update_yaml_file("gateway", value=message.data["gateway"], multiple=True)
                 self.ngi_settings.update_yaml_file("user", value=message.data["username"], multiple=True)
                 self.ngi_settings.update_yaml_file("password", value=message.data["password"], final=True)
-                self.ngi_settings.content["user"] = message.data["username"]
-                self.ngi_settings.content["password"] = message.data["password"]
-                self.ngi_settings.content["gateway"] = message.data.get("gateway", self.ngi_settings.content["gateway"])
+                self.settings["user"] = message.data["username"]
+                self.settings["password"] = message.data["password"]
+                self.settings["gateway"] = message.data.get("gateway", self.settings["gateway"])
             else:
                 self.ngi_settings.update_yaml_file("sipxcom_gateway", value=message.data["gateway"], multiple=True)
                 self.ngi_settings.update_yaml_file("sipxcom_user", value=message.data["username"], multiple=True)
                 self.ngi_settings.update_yaml_file("sipxcom_password", value=message.data["password"], final=True)
-                self.ngi_settings.content["sipxcom_user"] = message.data["username"]
-                self.ngi_settings.content["sipxcom_password"] = message.data["password"]
-                self.ngi_settings.content["sipxcom_gateway"] = message.data.get("gateway",
-                                                                                self.ngi_settings.content
+                self.settings["sipxcom_user"] = message.data["username"]
+                self.settings["sipxcom_password"] = message.data["password"]
+                self.settings["sipxcom_gateway"] = message.data.get("gateway",
+                                                                                self.settings
                                                                                 ["sipxcom_gateway"])
             # self.speak_dialog("sip_login",
             #                   {"gateway": self.ngi_settings.content["gateway"]})
