@@ -259,7 +259,9 @@ class SIPSkill(CommonMessageSkill):
         conf = None
         trimmed_request = None
         try:
-            self.contacts.import_baresip_contacts()
+            # Try to import baresip contacts file
+            if os.path.exists(os.path.join(os.path.expanduser("~"), ".baresip", "contacts")):
+                self.contacts.import_baresip_contacts()
         except Exception as e:
             LOG.error(e)
             return False
