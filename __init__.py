@@ -259,7 +259,9 @@ class SIPSkill(CommonMessageSkill):
         conf = None
         trimmed_request = None
         try:
-            self.contacts.import_baresip_contacts()
+            # Try to import baresip contacts file
+            if os.path.exists(os.path.join(os.path.expanduser("~"), ".baresip", "contacts")):
+                self.contacts.import_baresip_contacts()
         except Exception as e:
             LOG.error(e)
             return False
@@ -339,6 +341,11 @@ class SIPSkill(CommonMessageSkill):
             sleep(0.5)
         try:
             LOG.info(self.settings)
+            if "@" in self.settings["user"]:
+                LOG.warning(f'Malformed user in settings: {self.settings["user"]}')
+                user = self.settings["user"].split("@")[0]
+                self.ngi_settings.update_yaml_file("user", value=user, final=True)
+                self.settings = self.ngi_settings.check_for_updates()
             self.sip = BareSIP(self.settings["user"],
                                self.settings["password"],
                                self.settings["gateway"], block=False,
@@ -355,7 +362,6 @@ class SIPSkill(CommonMessageSkill):
                                                       f'/.baresip')
             LOG.debug(contacts)
             LOG.debug(current)
-            self._select_active_contact("sip:good@friend.com")
         except Exception as e:
             LOG.error(e)
 
