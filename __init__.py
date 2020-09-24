@@ -780,7 +780,10 @@ class SIPSkill(CommonMessageSkill):
         # TODO: if mobile, lookup
         matched_contact = None
         if not self.server:
-            self.contacts.import_baresip_contacts()
+            try:
+                self.contacts.import_baresip_contacts()
+            except Exception as e:
+                LOG.error(e)
             matched_contact = self.contacts.get_contact(contact)
         if matched_contact:
             address = contact["url"]
