@@ -778,6 +778,9 @@ class SIPSkill(CommonMessageSkill):
 
     def CMS_match_call_phrase(self, contact, context):
         # TODO: if mobile, lookup
+        if not self.sip:
+            LOG.info("No SIP service active to place call")
+            return False
         matched_contact = None
         if not self.server:
             try:
