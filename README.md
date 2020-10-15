@@ -1,4 +1,4 @@
-# ![](https://0000.us/klatchat/app/files/neon_images/icons/neon_paw.png)VOIP skill
+# ![](https://0000.us/klatchat/app/files/neon_images/icons/neon_paw.png)SIP skill
 
 # Summary
 Add VOIP capabilities to Mycroft using Baresip
