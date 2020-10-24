@@ -647,7 +647,8 @@ class SIPSkill(CommonMessageSkill):
             self.speak_dialog("sip_login_fail")
         else:
             self.speak_dialog("credentials_missing")
-        self.handle_gui_state("Configure")
+        # self.handle_gui_state("Configure")
+        self.show_settings_gui()
 
     def handle_incoming_call(self, number):
         self.sip.enable_recording()
@@ -744,8 +745,9 @@ class SIPSkill(CommonMessageSkill):
         if self.sip is None:
             if not self.settings["user"] or not self.settings["password"]:
                 if self.gui_enabled:
-                    self.gui["gateWayField"] = self.settings["gateway"]
-                    self.handle_gui_state("Configure")
+                    self.show_settings_gui()
+                    # self.gui["gateWayField"] = self.settings["gateway"]
+                    # self.handle_gui_state("Configure")
                     self.speak("Please fill in your credentials.")
                 else:
                     parent = tk.Tk()
