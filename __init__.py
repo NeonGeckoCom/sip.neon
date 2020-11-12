@@ -612,14 +612,9 @@ class SIPSkill(CommonMessageSkill):
     def CMS_handle_send_message(self, message):
         addr = message.data.get("skill_data").get("address")
         LOG.debug(f'DM: {message.data}')
-        raw_to_send = message.data.get("skill_data", {}).get("trimmed_request", message.data.get("request"))
-        if raw_to_send:
-            _, msg_to_send = self._extract_message_content(raw_to_send)
-            LOG.debug(f"Send message to {addr}")
-            self._select_active_contact(addr)
-        else:
-            self.speak("No message content!")
-            msg_to_send = "null"
+        msg_to_send = message.data.get("skill_data", {}).get("trimmed_request", message.data.get("request"))
+        LOG.debug(f"Send message to {addr}")
+        self._select_active_contact(addr)
         # TODO: Converse, confirm or get message like in messaging skill DM
         self.sip.do_command(f"/message {msg_to_send}")
         self.speak("Message sent.")
