@@ -287,6 +287,7 @@ class SIPSkill(CommonMessageSkill):
                 try:
                     # Try to handle baresip config contacts
                     sip_contacts = self.sip.get_contacts()[0]
+                    LOG.debug(sip_contacts)
                     for sip_name, sip_addr in sip_contacts.items():
                         if sip_name.lower() in request:
                             addr = sip_addr
@@ -322,7 +323,10 @@ class SIPSkill(CommonMessageSkill):
                 LOG.info(addr)
                 try:
                     if not trimmed_request:
-                        trimmed_request = request.split("com ", 1)[1].strip()
+                        if "com " in request:
+                            trimmed_request = request.split("com ", 1)[1].strip()
+                        else:
+                            return False
                     else:
                         trimmed_request = trimmed_request.strip()
                 except Exception as e:
