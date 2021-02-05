@@ -1,11 +1,11 @@
-# ![](https://0000.us/klatchat/app/files/neon_images/icons/neon_paw.png)SIP skill
+# <img src='https://0000.us/klatchat/app/files/neon_images/icons/neon_skill.png' card_color="#FF8600" width="50" style="vertical-align:bottom">SIP skill
 
-# Summary
+## Summary
 Add VOIP capabilities to Mycroft using Baresip
 
 ![](./voip.gif)
 
-# Description
+## Description
 Skill for placing and receiving SIP calls.
 
 # Install
@@ -127,7 +127,7 @@ There also a few admin/debug intents, you should never need to use these
 make to skill settings, for now avoid setting auto-answer etc by voice and 
 use the web ui only
 
-# Credits
+## Credits
 
 This work as been sponsored by Matt Keys, [eZuce Inc](https://ezuce.com/)
 
