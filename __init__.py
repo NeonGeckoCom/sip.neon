@@ -68,28 +68,6 @@ class SIPSkill(CommonMessageSkill):
     # TODO: Add server/mobile compat. DM
     def __init__(self):
         super(SIPSkill, self).__init__(name='SIPSkill')
-        # self.settings = dict()
-        # default_settings = {
-        #     "intercept_allowed": True,
-        #     "confirm_operations": True,
-        #     "debug": False,
-        #     "priority": 50,
-        #     "timeout": 30,
-        #     "auto_answer": False,
-        #     "auto_reject": False,
-        #     "auto_speech": "I am busy, try again later",
-        #     "add_contact": False,
-        #     "delete_contact": False,
-        #     "contact_name": None,
-        #     "contact_address": None,
-        #     "user": "",
-        #     "password": "",
-        #     "gateway": "sip2sip.info",
-        #     "sipxcom_user": None,
-        #     "sipxcom_password": None,
-        #     "sipxcom_gateway": None,
-        #     'record_dir': self.configuration_available['dirVars']['docsDir'] + '/neon_calls'
-        # }
         # self.init_settings(default_settings)
         # # skill settings defaults
         # # if "intercept_allowed" not in self.settings:
@@ -164,6 +142,7 @@ class SIPSkill(CommonMessageSkill):
         self.record_dir = None
         self.contacts = ContactList("mycroft_sip")
         self.message_words = ("sip", "voip", "baresip", "sip2sip", "sipxcom")
+        self.credentials_validated = False
 
     def initialize(self):
         # self.register_fallback(self.handle_fallback, 75)
@@ -632,22 +611,26 @@ class SIPSkill(CommonMessageSkill):
             self.add_new_contact(contact_name, number)
 
     def handle_login_success(self):
-        pass
+        self.credentials_validated = True
         # self.speak_dialog("sip_login_success")
 
     def handle_login_failure(self):
-        LOG.error("Log in failed!")
+        # TODO: Catch this after success and just retry DM
+        LOG.error("Log in error!")
         self.sip.quit()
         self.sip = None
         self.intercepting_utterances = False  # just in case
         if self.settings["user"] is not None and \
                 self.settings["gateway"] is not None and \
-                self.settings["password"] is not None:
+                self.settings["password"] is not None and \
+                not self.credentials_validated:
             self.speak_dialog("sip_login_fail")
+            self.show_settings_gui()
+        elif self.credentials_validated:
+            self.handle_login(Message(""))
         else:
             self.speak_dialog("credentials_missing")
-        # self.handle_gui_state("Configure")
-        self.show_settings_gui()
+            self.show_settings_gui()
 
     def handle_incoming_call(self, number):
         self.sip.enable_recording()
