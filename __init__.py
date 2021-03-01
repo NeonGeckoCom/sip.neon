@@ -989,7 +989,8 @@ class SIPSkill(CommonMessageSkill):
                 self.make_active()
             time.sleep(60)
 
-    def converse(self, utterances, lang="en-us", message=None):
+    def converse(self, message):
+        utterances = message.data.get("utterances")
         if self.settings.get("intercept_allowed") and utterances is not None:
             LOG.debug("{name}: Intercept stage".format(
                 name=self.skill_name))
