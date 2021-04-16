@@ -45,7 +45,7 @@ from subprocess import Popen
 
 from pydub import AudioSegment
 from mycroft.processing_modules.audio.modules.audio_normalizer import AudioNormalizer
-from mycroft.skills.common_message_skill import CommonMessageSkill, CMSMatchLevel
+from neon_utils.skills.common_message_skill import CommonMessageSkill, CMSMatchLevel
 from mycroft.skills.core import intent_file_handler
 from mycroft.skills.skill_data import read_vocab_file
 import time
@@ -58,7 +58,7 @@ from collections import defaultdict
 from xml.etree import cElementTree as cET
 import requests
 from requests.auth import HTTPBasicAuth
-from mycroft.messagebus.message import Message
+from mycroft_bus_client import Message
 import tkinter as tk
 import tkinter.simpledialog as dialog_box
 from mycroft.util import record
@@ -341,8 +341,9 @@ class SIPSkill(CommonMessageSkill):
             self.sip.handle_call_established = self.handle_call_established
             self.sip.handle_text_message = self.handle_incoming_text_message
 
-            contacts, current = self.sip.get_contacts(f'/home/{self.configuration_available["devVars"]["installUser"]}'
-                                                      f'/.baresip')
+            with open(os.path.expanduser('~/.baresip/current_contact'), "a+"):
+                pass
+            contacts, current = self.sip.get_contacts(os.path.expanduser('~/.baresip'))
             LOG.debug(contacts)
             LOG.debug(current)
         except Exception as e:
@@ -472,6 +473,8 @@ class SIPSkill(CommonMessageSkill):
         """
         LOG.debug(f"Requested {name}")
         contacts, active = self.sip.get_contacts()
+        if not active:
+            raise EnvironmentError
         LOG.debug(contacts)
         if name in contacts.keys():
             addr_to_select = contacts[name]
@@ -553,8 +556,7 @@ class SIPSkill(CommonMessageSkill):
                                   wait=True)
         self.contacts.export_baresip_contacts()
         self.sip.do_command("/conf_reload")
-        contacts, current = self.sip.get_contacts(f'/home/{self.configuration_available["devVars"]["installUser"]}'
-                                                  f'/.baresip')
+        contacts, current = self.sip.get_contacts(os.path.expanduser(f'~/.baresip'))
 
     def delete_contact(self, name, prompt=False):
         name = name.replace("_", " ").replace("-", " ").strip()
@@ -597,10 +599,13 @@ class SIPSkill(CommonMessageSkill):
         LOG.debug(f'DM: {message.data}')
         msg_to_send = message.data.get("skill_data", {}).get("trimmed_request", message.data.get("request"))
         LOG.debug(f"Send message to {addr}")
-        self._select_active_contact(addr)
-        # TODO: Converse, confirm or get message like in messaging skill DM
-        self.sip.do_command(f"/message {msg_to_send}")
-        self.speak("Message sent.")
+        try:
+            self._select_active_contact(addr)
+            # TODO: Converse, confirm or get message like in messaging skill DM
+            self.sip.do_command(f"/message {msg_to_send}")
+            self.speak("Message sent.")
+        except EnvironmentError:
+            self.speak(f"Something went wrong. Please fix your bare SIP environment.")
 
     def prompt_add_contact(self, number):
         parent = tk.Tk()
@@ -717,48 +722,50 @@ class SIPSkill(CommonMessageSkill):
 
     @intent_file_handler("restart.intent")
     def handle_restart(self, message):
-        if self.sip is not None:
-            self.sip.stop()
-            self.sip = None
-        self.handle_login(message)
+        if self.neon_in_request(message):
+            if self.sip is not None:
+                self.sip.stop()
+                self.sip = None
+            self.handle_login(message)
 
     @intent_file_handler("login.intent")
     def handle_login(self, message):
-        if self.sip is None:
-            if not self.settings["user"] or not self.settings["password"]:
-                if self.gui_enabled:
-                    self.show_settings_gui()
-                    # self.gui["gateWayField"] = self.settings["gateway"]
-                    # self.handle_gui_state("Configure")
-                    self.speak("Please fill in your credentials.")
-                else:
-                    parent = tk.Tk()
-                    parent.withdraw()
-                    username = dialog_box.askstring("Login", "Please enter your sip2sip.info username")
-                    parent.quit()
-                    LOG.info(username)
-                    parent.withdraw()
-                    password = None
-                    if username:
-                        password = dialog_box.askstring("Login", "Please enter your sip2sip.info password")
-                        parent.quit()
-                        LOG.info(password)
-                        self.ngi_settings.update_yaml_file("user", value=username, multiple=True)
-                        self.ngi_settings.update_yaml_file("password", value=password, final=True)
-                        self.settings["user"] = username
-                        self.settings["password"] = password
-                    if username and password and self.settings["gateway"]:
-                        self.speak_dialog("sip_login",
-                                          {"gateway": self.settings["gateway"]})
-                        self.start_sip()
+        if self.neon_in_request(message):
+            if self.sip is None:
+                if not self.settings["user"] or not self.settings["password"]:
+                    if self.gui_enabled:
+                        self.show_settings_gui()
+                        # self.gui["gateWayField"] = self.settings["gateway"]
+                        # self.handle_gui_state("Configure")
+                        self.speak("Please fill in your credentials.")
                     else:
-                        self.speak_dialog("credentials_missing")
+                        parent = tk.Tk()
+                        parent.withdraw()
+                        username = dialog_box.askstring("Login", "Please enter your sip2sip.info username")
+                        parent.quit()
+                        LOG.info(username)
+                        parent.withdraw()
+                        password = None
+                        if username:
+                            password = dialog_box.askstring("Login", "Please enter your sip2sip.info password")
+                            parent.quit()
+                            LOG.info(password)
+                            self.ngi_settings.update_yaml_file("user", value=username, multiple=True)
+                            self.ngi_settings.update_yaml_file("password", value=password, final=True)
+                            self.settings["user"] = username
+                            self.settings["password"] = password
+                        if username and password and self.settings["gateway"]:
+                            self.speak_dialog("sip_login",
+                                              {"gateway": self.settings["gateway"]})
+                            self.start_sip()
+                        else:
+                            self.speak_dialog("credentials_missing")
+                else:
+                    self.start_sip()
             else:
-                self.start_sip()
-        else:
-            self.speak_dialog("sip_running")
-            if self.ask_yesno("want_restart") == "yes":
-                self.handle_restart(message)
+                self.speak_dialog("sip_running")
+                if self.ask_yesno("want_restart") == "yes":
+                    self.handle_restart(message)
 
     def CMS_match_call_phrase(self, contact, context):
         # TODO: if mobile, lookup
@@ -893,78 +900,88 @@ class SIPSkill(CommonMessageSkill):
 
     @intent_file_handler("call_and_say.intent")
     def handle_call_contact_and_say(self, message):
-        utterance = message.data["speech"]
+        if self.neon_in_request(message):
+            utterance = message.data["speech"]
 
-        def cb():
-            self.speak_and_hang(utterance)
+            def cb():
+                self.speak_and_hang(utterance)
 
-        self.cb = cb
-        self.handle_call_contact(message)
+            self.cb = cb
+            self.handle_call_contact(message)
 
     @intent_file_handler("resume_call.intent")
     @intent_file_handler("unmute.intent")
     def handle_resume(self, message):
-        # TODO can both happen at same time ?
-        if self.on_hold:
-            self.on_hold = False
-            self.speak_dialog("resume_call", wait=True)
-            self.sip.resume()
-        elif self.muted:
-            self.muted = False
-            self.speak_dialog("unmute_call", wait=True)
-            self.sip.unmute_mic()
-        else:
-            self.speak_dialog("no_call")
+        if self.neon_in_request(message):
+            # TODO can both happen at same time ?
+            if self.on_hold:
+                self.on_hold = False
+                self.speak_dialog("resume_call", wait=True)
+                self.sip.resume()
+            elif self.muted:
+                self.muted = False
+                self.speak_dialog("unmute_call", wait=True)
+                self.sip.unmute_mic()
+            else:
+                self.speak_dialog("no_call")
 
     @intent_file_handler("reject_all.intent")
     def handle_auto_reject(self, message):
-        self.settings["auto_reject"] = True
-        self.settings["auto_answer"] = False
-        self.speak_dialog("rejecting_all")
+        if self.neon_in_request(message):
+            self.settings["auto_reject"] = True
+            self.settings["auto_answer"] = False
+            self.speak_dialog("rejecting_all")
 
     @intent_file_handler("answer_all.intent")
     def handle_auto_answer(self, message):
-        self.settings["auto_answer"] = True
-        self.settings["auto_reject"] = False
-        self.speak_dialog("accept_all",
-                          {"speech": self.settings["auto_speech"]})
+        if self.neon_in_request(message):
+            self.settings["auto_answer"] = True
+            self.settings["auto_reject"] = False
+            self.speak_dialog("accept_all",
+                              {"speech": self.settings["auto_speech"]})
 
     @intent_file_handler("answer_all_and_say.intent")
     def handle_auto_answer_with(self, message):
-        self.settings["auto_speech"] = message.data["speech"]
-        self.handle_auto_answer(message)
+        if self.neon_in_request(message):
+            self.settings["auto_speech"] = message.data["speech"]
+            self.handle_auto_answer(message)
 
     @intent_file_handler("contacts_list.intent")
     def handle_list_contacts(self, message):
-        self.gui["contactListModel"] = self.contacts.list_contacts()
-        self.handle_gui_state("Contacts")
-        users = self.contacts.list_contacts()
-        self.speak_dialog("contacts_list")
-        for user in users:
-            self.speak(user["name"])
+        if self.neon_in_request(message):
+            self.gui["contactListModel"] = self.contacts.list_contacts()
+            self.handle_gui_state("Contacts")
+            users = self.contacts.list_contacts()
+            self.speak_dialog("contacts_list")
+            for user in users:
+                self.speak(user["name"])
 
     @intent_file_handler("contacts_number.intent")
     def handle_number_of_contacts(self, message):
-        users = self.contacts.list_contacts()
-        self.speak_dialog("contacts_number", {"number": len(users)})
+        if self.neon_in_request(message):
+            users = self.contacts.list_contacts()
+            self.speak_dialog("contacts_number", {"number": len(users)})
 
     @intent_file_handler("disable_auto.intent")
     def handle_no_auto_answering(self, message):
-        self.settings["auto_answer"] = False
-        self.settings["auto_reject"] = False
-        self.speak_dialog("no_auto")
+        if self.neon_in_request(message):
+            self.settings["auto_answer"] = False
+            self.settings["auto_reject"] = False
+            self.speak_dialog("no_auto")
 
     @intent_file_handler("call_status.intent")
     def handle_status(self, message):
-        if self.sip is not None:
-            self.speak_dialog("call_status", {"status": self.sip.call_status})
-        else:
-            self.speak_dialog("sip_not_running")
+        if self.neon_in_request(message):
+            if self.sip is not None:
+                self.speak_dialog("call_status", {"status": self.sip.call_status})
+            else:
+                self.speak_dialog("sip_not_running")
 
     # sipxcom intents
     @intent_file_handler("sipxcom_sync.intent")
     def handle_syncs(self, message):
-        self.sipxcom_sync()
+        if self.neon_in_request(message):
+            self.sipxcom_sync()
 
     def sipxcom_sync(self):
         try:
