@@ -59,9 +59,15 @@ from xml.etree import cElementTree as cET
 import requests
 from requests.auth import HTTPBasicAuth
 from mycroft_bus_client import Message
-import tkinter as tk
-import tkinter.simpledialog as dialog_box
+
 from mycroft.util import record
+
+try:
+    import tkinter as tk
+    import tkinter.simpledialog as dialog_box
+except ImportError:
+    tk = None
+    dialog_box = None
 
 
 class SIPSkill(CommonMessageSkill):
@@ -608,12 +614,13 @@ class SIPSkill(CommonMessageSkill):
             self.speak(f"Something went wrong. Please fix your bare SIP environment.")
 
     def prompt_add_contact(self, number):
-        parent = tk.Tk()
-        parent.withdraw()
-        contact_name = dialog_box.askstring("Add Contact", f"Add a name to save {number} to your contacts.")
-        parent.quit()
-        if contact_name:
-            self.add_new_contact(contact_name, number)
+        if tk:
+            parent = tk.Tk()
+            parent.withdraw()
+            contact_name = dialog_box.askstring("Add Contact", f"Add a name to save {number} to your contacts.")
+            parent.quit()
+            if contact_name:
+                self.add_new_contact(contact_name, number)
 
     def handle_login_success(self):
         self.credentials_validated = True
@@ -738,7 +745,7 @@ class SIPSkill(CommonMessageSkill):
                         # self.gui["gateWayField"] = self.settings["gateway"]
                         # self.handle_gui_state("Configure")
                         self.speak("Please fill in your credentials.")
-                    else:
+                    elif tk:
                         parent = tk.Tk()
                         parent.withdraw()
                         username = dialog_box.askstring("Login", "Please enter your sip2sip.info username")
@@ -1078,9 +1085,7 @@ class SIPSkill(CommonMessageSkill):
                 self.ngi_settings.update_yaml_file("sipxcom_password", value=message.data["password"], final=True)
                 self.settings["sipxcom_user"] = message.data["username"]
                 self.settings["sipxcom_password"] = message.data["password"]
-                self.settings["sipxcom_gateway"] = message.data.get("gateway",
-                                                                                self.settings
-                                                                                ["sipxcom_gateway"])
+                self.settings["sipxcom_gateway"] = message.data.get("gateway", self.settings["sipxcom_gateway"])
             # self.speak_dialog("sip_login",
             #                   {"gateway": self.ngi_settings.content["gateway"]})
             if self.sip:
