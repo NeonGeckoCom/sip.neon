@@ -169,9 +169,9 @@ class SIPSkill(CommonMessageSkill):
             LOG.error(e)
 
         self.record_dir = self.settings.get("record_dir",
-                                            self.configuration_available['dirVars']['docsDir'] + '/neon_calls')
+                                            self.local_config['dirVars']['docsDir'] + '/neon_calls')
         if self.record_dir == "":
-            self.record_dir = self.configuration_available['dirVars']['docsDir'] + '/neon_calls'
+            self.record_dir = self.local_config['dirVars']['docsDir'] + '/neon_calls'
         if not os.path.isdir(self.record_dir):
             try:
                 os.makedirs(self.record_dir, exist_ok=True)
@@ -412,7 +412,7 @@ class SIPSkill(CommonMessageSkill):
         :return:
         """
         try:
-            for file in glob.glob(f'{self.configuration_available["dirVars"]["ngiDir"]}/dump-*.wav'):
+            for file in glob.glob(f'{self.local_config["dirVars"]["ngiDir"]}/dump-*.wav'):
                 LOG.debug(f"moving {file}")
                 if file.endswith("-dec.wav"):
                     new_name = "incoming_audio.wav"
