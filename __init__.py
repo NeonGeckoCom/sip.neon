@@ -43,8 +43,12 @@ from os.path import basename
 # from shutil import copyfile
 from subprocess import Popen
 
+from neon_utils import request_from_mobile
 from pydub import AudioSegment
-from mycroft.processing_modules.audio.modules.audio_normalizer import AudioNormalizer
+try:
+    from neon_speech.plugins.modules.audio_normalizer import AudioNormalizer
+except ImportError:
+    from mycroft.processing_modules.audio.modules.audio_normalizer import AudioNormalizer
 from neon_utils.skills.common_message_skill import CommonMessageSkill, CMSMatchLevel
 from mycroft.skills.core import intent_file_handler
 from mycroft.skills.skill_data import read_vocab_file
@@ -828,12 +832,14 @@ class SIPSkill(CommonMessageSkill):
         name = message.data["skill_data"].get("name")
         addr = message.data["skill_data"].get("address")
         if self.server:
-            if message.context.get("mobile"):
+            if request_from_mobile(message):
                 if addr and "@" in addr:
-                    self.socket_io_emit("sip_call", f'&addr={addr}', message.context.get("flac_filename"))
+                    self.mobile_skill_intent("sip_call", {"addr": addr}, message)
+                    # self.socket_io_emit("sip_call", f'&addr={addr}', message.context.get("flac_filename"))
                 else:
-                    self.socket_io_emit("sip_call", f'&name={name}',
-                                        message.context.get("flac_filename"))
+                    self.mobile_skill_intent("sip_call", {"name": name}, message)
+                    # self.socket_io_emit("sip_call", f'&name={name}',
+                    #                     message.context.get("flac_filename"))
 
             else:
                 self.speak_dialog("ServerNotSupported", private=True)
@@ -879,12 +885,14 @@ class SIPSkill(CommonMessageSkill):
         address = contact["url"]
 
         if self.server:
-            if message.context.get("mobile"):
+            if request_from_mobile(message):
                 if "@" in address:
-                    self.socket_io_emit("sip_call", f'&addr={address}', message.context.get("flac_filename"))
+                    self.mobile_skill_intent("sip_call", {"addr": address}, message)
+                    # self.socket_io_emit("sip_call", f'&addr={addr}', message.context.get("flac_filename"))
                 else:
-                    self.socket_io_emit("sip_call", f'&name={name}',
-                                        message.context.get("flac_filename"))
+                    self.mobile_skill_intent("sip_call", {"name": name}, message)
+                    # self.socket_io_emit("sip_call", f'&name={name}',
+                    #                     message.context.get("flac_filename"))
 
             else:
                 self.speak_dialog("ServerNotSupported", private=True)
