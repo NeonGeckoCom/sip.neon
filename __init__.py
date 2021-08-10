@@ -333,16 +333,17 @@ class SIPSkill(CommonMessageSkill):
             self.sip.quit()
             sleep(0.5)
         try:
-            LOG.info(self.settings)
-            if "@" in self.settings["user"]:
-                LOG.warning(f'Malformed user in settings: {self.settings["user"]}')
-                user = self.settings["user"].split("@")[0]
-                self.ngi_settings.update_yaml_file("user", value=user, final=True)
-                self.settings = self.ngi_settings.check_for_updates()
-            self.sip = BareSIP(self.settings["user"],
-                               self.settings["password"],
-                               self.settings["gateway"], block=False,
-                               debug=self.settings["debug"])
+            settings = self.preference_skill()
+            LOG.info(settings)
+            if "@" in settings["user"]:
+                LOG.warning(f'Malformed user in settings: {settings["user"]}')
+                user = settings["user"].split("@")[0]
+                settings["user"] = "user"
+                self.update_skill_settings(settings)
+            self.sip = BareSIP(settings["user"],
+                               settings["password"],
+                               settings["gateway"], block=False,
+                               debug=settings["debug"])
             LOG.info(self.sip)
             self.sip.handle_incoming_call = self.handle_incoming_call
             self.sip.handle_call_ended = self.handle_call_ended
@@ -743,7 +744,8 @@ class SIPSkill(CommonMessageSkill):
     def handle_login(self, message):
         if self.neon_in_request(message):
             if self.sip is None:
-                if not self.settings["user"] or not self.settings["password"]:
+                settings = self.preference_skill(message)
+                if not settings["user"] or not settings["password"]:
                     if self.gui_enabled:
                         self.show_settings_gui()
                         # self.gui["gateWayField"] = self.settings["gateway"]
@@ -761,13 +763,12 @@ class SIPSkill(CommonMessageSkill):
                             password = dialog_box.askstring("Login", "Please enter your sip2sip.info password")
                             parent.quit()
                             LOG.info(password)
-                            self.ngi_settings.update_yaml_file("user", value=username, multiple=True)
-                            self.ngi_settings.update_yaml_file("password", value=password, final=True)
-                            self.settings["user"] = username
-                            self.settings["password"] = password
-                        if username and password and self.settings["gateway"]:
+                            settings["user"] = username
+                            settings["password"] = password
+                            self.update_skill_settings(settings, message)
+                        if username and password and settings["gateway"]:
                             self.speak_dialog("sip_login",
-                                              {"gateway": self.settings["gateway"]})
+                                              {"gateway": settings["gateway"]})
                             self.start_sip()
                         else:
                             self.speak_dialog("credentials_missing")
@@ -1080,20 +1081,16 @@ class SIPSkill(CommonMessageSkill):
     def handle_config_from_gui(self, message):
 
         if message.data["username"] and message.data["password"] and message.data["gateway"]:
+            settings = self.preference_skill(message)
             if message.data["type"] is not "SipXCom":
-                self.ngi_settings.update_yaml_file("gateway", value=message.data["gateway"], multiple=True)
-                self.ngi_settings.update_yaml_file("user", value=message.data["username"], multiple=True)
-                self.ngi_settings.update_yaml_file("password", value=message.data["password"], final=True)
-                self.settings["user"] = message.data["username"]
-                self.settings["password"] = message.data["password"]
-                self.settings["gateway"] = message.data.get("gateway", self.settings["gateway"])
+                settings["user"] = message.data["username"]
+                settings["password"] = message.data["password"]
+                settings["gateway"] = message.data.get("gateway", settings["gateway"])
             else:
-                self.ngi_settings.update_yaml_file("sipxcom_gateway", value=message.data["gateway"], multiple=True)
-                self.ngi_settings.update_yaml_file("sipxcom_user", value=message.data["username"], multiple=True)
-                self.ngi_settings.update_yaml_file("sipxcom_password", value=message.data["password"], final=True)
-                self.settings["sipxcom_user"] = message.data["username"]
-                self.settings["sipxcom_password"] = message.data["password"]
-                self.settings["sipxcom_gateway"] = message.data.get("gateway", self.settings["sipxcom_gateway"])
+                settings["sipxcom_user"] = message.data["username"]
+                settings["sipxcom_password"] = message.data["password"]
+                settings["sipxcom_gateway"] = message.data.get("gateway", settings["sipxcom_gateway"])
+            self.update_skill_settings(settings, message)
             # self.speak_dialog("sip_login",
             #                   {"gateway": self.ngi_settings.content["gateway"]})
             if self.sip:
