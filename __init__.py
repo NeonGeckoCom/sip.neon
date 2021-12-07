@@ -172,15 +172,11 @@ class SIPSkill(CommonMessageSkill):
         except Exception as e:
             LOG.error(e)
 
-        self.record_dir = self.settings.get("record_dir",
-                                            self.local_config['dirVars']['docsDir'] + '/neon_calls')
-        if self.record_dir == "":
-            self.record_dir = self.local_config['dirVars']['docsDir'] + '/neon_calls'
-        if not os.path.isdir(self.record_dir):
-            try:
-                os.makedirs(self.record_dir, exist_ok=True)
-            except Exception as e:
-                LOG.error(e)
+        self.record_dir = self.settings.get("record_dir") or \
+            self.local_config['dirVars']['docsDir'] + '/neon_calls'
+        self.record_dir = os.path.expanduser(self.record_dir)
+        if not os.path.exists(self.record_dir):
+            os.makedirs(self.record_dir)
         if self.settings["user"] and not self.server:
             self.start_sip()
         # if self.settings["sipxcom_sync"]:
